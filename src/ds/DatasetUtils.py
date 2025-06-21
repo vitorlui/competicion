@@ -39,8 +39,52 @@ def compute_mean_std(dataset, batch_size=64, num_workers=2):
     return mean.tolist(), std.tolist()
 
 
+def get_or_compute_class_weights(dataset, num_classes, weights_path="class_weights.npy", force_recompute=False):
+    """
+    Calcula o carga pesos de clases balanceados para un dataset de clasificación.
 
-def get_or_compute_class_weights(dataset, weights_path="class_weights.npy", force_recompute=False):
+    Parámetros:
+        dataset: PyTorch Dataset
+            Dataset que retorna (imagen, label)
+        num_classes: int
+            Número total de clases (por ejemplo, 6 o 15)
+        weights_path: str
+            Ruta del archivo .npy donde guardar/cargar los pesos
+        force_recompute: bool
+            Si True, fuerza recalcular incluso si el archivo existe
+
+    Retorna:
+        class_weights: np.ndarray
+            Vector de pesos (float) de tamaño [num_classes]
+            Las clases no presentes tendrán peso 0.0
+    """
+    if os.path.exists(weights_path) and not force_recompute:
+        class_weights = np.load(weights_path)
+        print(f"✅ Pesos cargados desde: {weights_path}")
+        return class_weights
+
+    # Extraer etiquetas
+    labels = [label for _, label in dataset]
+    unique_present = np.unique(labels)
+
+    # Calcular pesos solo para clases presentes
+    weights_present = compute_class_weight(
+        class_weight='balanced',
+        classes=unique_present,
+        y=np.array(labels)
+    )
+
+    # Vector completo con ceros
+    class_weights = np.zeros(num_classes, dtype=np.float32)
+    for cls, w in zip(unique_present, weights_present):
+        class_weights[cls] = w
+
+    # Guardar a disco
+    np.save(weights_path, class_weights)
+    print(f"✅ Pesos calculados y guardados en: {weights_path}")
+    return class_weights
+
+def get_or_compute_class_weights_old(dataset, weights_path="class_weights.npy", force_recompute=False):
     """
     Calcula o carga pesos de clases balanceados para un dataset de clasificación.
 

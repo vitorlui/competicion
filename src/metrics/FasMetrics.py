@@ -55,8 +55,20 @@ def evaluar_modelo(modelo, dataloader, num_clases, device="cuda", verbose=True, 
 
     # Construir etiquetas binarias: 1 = bonafide (clase 0), 0 = ataque (clase != 0)
     y_true = (all_labels == 0).astype(np.int32)
-    # Predicciones binarizadas con umbral 0.5 sobre probabilidad bonafide
-    y_pred = (all_probs >= 0.5).astype(np.int32)
+
+    # # Predicciones binarizadas con umbral 0.5 sobre probabilidad bonafide
+    # y_pred = (all_probs >= 0.5).astype(np.int32)
+
+     # Calcular threshold óptimo (mínima diferencia entre FPR y FNR)
+    fpr, tpr, thresholds = roc_curve(y_true, all_probs, pos_label=1)
+    fnr = 1 - tpr
+    idx_eer = np.nanargmin(np.abs(fnr - fpr))
+    best_threshold = thresholds[idx_eer]
+    
+    print(f"best threshold: {best_threshold}")
+
+    # Aplicar threshold optimizado
+    y_pred = (all_probs >= best_threshold).astype(np.int32)
 
     # Calcular TP, FP, FN, TN
     TP = np.sum((y_pred == 1) & (y_true == 1))

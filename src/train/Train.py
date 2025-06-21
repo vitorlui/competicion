@@ -23,7 +23,8 @@ def train_model(
     checkpoint_every=5,
     epochs=30,
     device="cuda",
-    output_dir="checkpoints"
+    input_dir=".",
+    output_dir="checkpoints"    
 ):
 
     experiment_time = datetime.now().strftime("%d%m_%H%M")
@@ -111,7 +112,8 @@ def train_model(
                 transformer_name=transformer_name,
                 epoch=epoch,
                 device=device,
-                output_dir=output_dir
+                input_dir=input_dir,
+                output_dir=output_dir               
             )
         else:
             metrics_log.append(row)

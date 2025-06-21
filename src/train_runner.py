@@ -1,16 +1,18 @@
 import argparse
+from time import sleep
 from train.Train import train_model
 from ds.TransformFactory import TransformFactory
 from models.ModelFactory import ModelFactory
 from ds.DatasetFactory import DatasetFactory
 from torch.utils.data import DataLoader
 
-# Lista de modelos 3D
-models_3d = ["r2plus1d_18", "mc3_18", "r3d_18"]
-
 def is_3d_model(model_name):
-    models_3d = ["r2plus1d_18", "mc3_18", "r3d_18"]
-    return model_name in models_3d
+    models_3d = ["r2plus1d_18", "mc3_18", "r3d_18"
+                 , "r2plus1d_18_2c", "mc3_18_2c", "r3d_18_2c"
+                 , "r2plus1d_18_3c", "mc3_18_3c", "r3d_18_3c"
+                 , "r2plus1d_18_6c", "mc3_18_6c", "r3d_18_6c"
+                 , "r2plus1d_18_15c", "mc3_18_15c", "r3d_18_15c"
+                 ]
 
 def main():
     parser = argparse.ArgumentParser(description="Train a model for FAS classification")
@@ -24,10 +26,12 @@ def main():
     parser.add_argument('--pretrained', type=bool, default=True)
     parser.add_argument('--preproc', type=bool, default=False)
     parser.add_argument('--multiGPU', type=bool, default=False)
+    parser.add_argument('--test_mode', type=bool, default=False)
+    parser.add_argument('--input_dir', type=str, default="/mnt/d2/competicion")
     
 
     args = parser.parse_args()
-
+    print(f"args:{args}")
     transform_name = args.transformer
     transform_name, tfms = TransformFactory.get_transform_by_name(transform_name)
     num_classes_iter = args.classes
@@ -37,21 +41,37 @@ def main():
     if not args.preproc:
         train_ds = DatasetFactory.create(
             num_classes=num_classes_iter,
-            protocol_file="Protocol-train.txt",
-            root_dir="Data-train",
+            protocol_file=f"{args.input_dir}/Protocol-train.txt",
+            root_dir=f"{args.input_dir}/Data-train",
             transform=tfms,
             is3d= is_3d_model(args.model)
         )
+
+        if args.test_mode:
+            print("Test mode ON")
+            # Teste mode
+            train_ds = DatasetFactory.create(
+                num_classes=num_classes_iter,
+                protocol_file=f"{args.input_dir}/Protocol-vt.txt",
+                root_dir=f"{args.input_dir}/Data-vt",
+                transform=tfms,
+                is3d= is_3d_model(args.model)
+            )
     else:
         print("Usando preproc")
-        if "bicubic" in transform_name:
+        if is_3d_model(args.model):
+            print("Usando preproc 3D")
+            protocol_file_preproc = "Protocol-train3D.txt"
+            root_dir_preproc = f"{args.input_dir}/Data-train3D"
+
+        elif "bicubic" in transform_name:
             print("Usando preproc bicubic")
-            protocol_file_preproc = "Protocol-trainPreProcBicubic.txt"
-            root_dir_preproc = "Data-trainPrepProcResize256bicubic_crop224"
+            protocol_file_preproc = "Protocol-train_bicubic.txt"
+            root_dir_preproc = f"{args.input_dir}/Data-train_bicubic"
         else:
             print("Usando preproc bilinear")
-            protocol_file_preproc = "Protocol-trainPreProcBilinear.txt"
-            root_dir_preproc = "Data-trainPrepProcResize256bilinear_crop224"
+            protocol_file_preproc = "Protocol-train_bilinear.txt"
+            root_dir_preproc = f"{args.input_dir}/Data-train_bilinear"
         
         train_ds = DatasetFactory.create(
             num_classes=num_classes_iter,
@@ -60,18 +80,28 @@ def main():
             transform=TransformFactory.get_postprocessing_transform()
         )
 
-
     eval_ds = DatasetFactory.create(
         num_classes=num_classes_iter,
-        protocol_file="Protocol-val.txt",
-        root_dir="Data-val",
+        protocol_file=f"{args.input_dir}/Protocol-val.txt",
+        root_dir=f"{args.input_dir}/Data-val",
         transform=tfms,
         is3d= is_3d_model(args.model)
     )
+
+    if args.test_mode:
+        # Teste mode
+        eval_ds = DatasetFactory.create(
+                num_classes=num_classes_iter,
+                protocol_file=f"{args.input_dir}/Protocol-vt.txt",
+                root_dir=f"{args.input_dir}/Data-vt",
+                transform=tfms,
+                is3d= is_3d_model(args.model)
+            )
+    
     eval2_ds = DatasetFactory.create(
         num_classes=num_classes_iter,
-        protocol_file="Protocol-vt.txt",
-        root_dir="Data-vt",
+        protocol_file=f"{args.input_dir}/Protocol-vt.txt",
+        root_dir=f"{args.input_dir}/Data-vt",
         transform=tfms,
         is3d= is_3d_model(args.model)
     )
@@ -95,7 +125,9 @@ def main():
         checkpoint_every=args.every_epoch,
         epochs=args.epochs,
         device=args.device,
+        input_dir=args.input_dir,
         output_dir=f"ck_{args.model}_{num_classes_iter}_pt{1 if args.pretrained else 0}_{transform_name}"
+
     )
 
 if __name__ == "__main__":

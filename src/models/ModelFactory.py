@@ -93,15 +93,20 @@ class ModelFactory:
         # model = model_cls(num_classes)
         model = model_cls(num_classes, pretrained=pretrained)
 
-        if torch.cuda.device_count() > 1:
+        if multiGPU:
             print(f"Using {torch.cuda.device_count()} GPUs with DataParallel.")
             model = torch.nn.DataParallel(model)
             
         return model.to(device)
 
-
-
-
+def is_3d_model(model_name):
+    models_3d = ["r2plus1d_18", "mc3_18", "r3d_18"
+                 , "r2plus1d_18_2c", "mc3_18_2c", "r3d_18_2c"
+                 , "r2plus1d_18_3c", "mc3_18_3c", "r3d_18_3c"
+                 , "r2plus1d_18_6c", "mc3_18_6c", "r3d_18_6c"
+                 , "r2plus1d_18_15c", "mc3_18_15c", "r3d_18_15c"
+                 ]
+    return model_name in models_3d
 
 # class ModelFactory:
 #     """Factory class to create models with adjusted final layers for given num_classes."""
