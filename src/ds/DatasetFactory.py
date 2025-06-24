@@ -178,8 +178,10 @@ class DatasetFactory:
                , protocol_file: str
                , root_dir: str
                , transform: Optional[Callable] = None
-               , is3d: bool = False,
-                apply_filters: bool = True) -> Dataset:
+               , is3d: bool = False
+               , apply_filters: bool = True
+               , preproc: bool = False
+                ) -> Dataset:
         if is3d:            
             return FilteredDataset(
                 protocol_file=protocol_file,

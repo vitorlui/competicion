@@ -5,6 +5,8 @@ from ds.TransformFactory import TransformFactory
 from models.ModelFactory import ModelFactory
 from ds.DatasetFactory import DatasetFactory
 from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 
 def is_3d_model(model_name):
     models_3d = ["r2plus1d_18", "mc3_18", "r3d_18"
@@ -13,6 +15,7 @@ def is_3d_model(model_name):
                  , "r2plus1d_18_6c", "mc3_18_6c", "r3d_18_6c"
                  , "r2plus1d_18_15c", "mc3_18_15c", "r3d_18_15c"
                  ]
+    return model_name in models_3d
 
 def main():
     parser = argparse.ArgumentParser(description="Train a model for FAS classification")
@@ -28,16 +31,26 @@ def main():
     parser.add_argument('--multiGPU', type=bool, default=False)
     parser.add_argument('--test_mode', type=bool, default=False)
     parser.add_argument('--input_dir', type=str, default="/mnt/d2/competicion")
+    parser.add_argument('--label', type=str, default=None)
     
 
     args = parser.parse_args()
     print(f"args:{args}")
     transform_name = args.transformer
-    transform_name, tfms = TransformFactory.get_transform_by_name(transform_name)
+    # transform_name, tfms = TransformFactory.get_transform_by_name(transform_name)
     num_classes_iter = args.classes
 
-    print("Usando transformación:", transform_name)
+    tfms = transforms.Compose([transforms.Resize([112, 112]),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean = [0.43216, 0.394666, 0.37645]
+                                                         , std = [0.22803, 0.22145, 0.216989]
+                                   )])
+    
+    transform_name = "videoTfms"
 
+    print("Usando transformación:", transform_name)
+    print("is_3d_model:", is_3d_model(args.model))
+    
     if not args.preproc:
         train_ds = DatasetFactory.create(
             num_classes=num_classes_iter,
@@ -61,7 +74,7 @@ def main():
         print("Usando preproc")
         if is_3d_model(args.model):
             print("Usando preproc 3D")
-            protocol_file_preproc = "Protocol-train3D.txt"
+            protocol_file_preproc = "Protocol-train.txt"
             root_dir_preproc = f"{args.input_dir}/Data-train3D"
 
         elif "bicubic" in transform_name:
@@ -77,7 +90,8 @@ def main():
             num_classes=num_classes_iter,
             protocol_file=protocol_file_preproc,
             root_dir=root_dir_preproc, 
-            transform=TransformFactory.get_postprocessing_transform()
+            transform=TransformFactory.get_postprocessing_transform(),
+            is3d= is_3d_model(args.model)
         )
 
     eval_ds = DatasetFactory.create(
@@ -111,7 +125,8 @@ def main():
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     eval_loader = DataLoader(eval_ds, batch_size=16)
     eval2_loader = DataLoader(eval2_ds, batch_size=16)
-
+    label = f"_{args.label}" if args.label else ""
+    
     model = train_model(
         model=model,
         train_loader=train_loader,
@@ -126,7 +141,7 @@ def main():
         epochs=args.epochs,
         device=args.device,
         input_dir=args.input_dir,
-        output_dir=f"ck_{args.model}_{num_classes_iter}_pt{1 if args.pretrained else 0}_{transform_name}"
+        output_dir=f"ck_{args.model}_{num_classes_iter}_pt{1 if args.pretrained else 0}_{transform_name}{label}"
 
     )
 

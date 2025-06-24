@@ -16,11 +16,13 @@ class FilteredDataset(Dataset):
         root_dir: Union[str, Path],
         apply_filters: bool = True,
         transform: Optional[Callable] = None,
+        preproc: bool = False
     ):
         self.root_dir = Path(root_dir)
         self.transform = transform
         self.apply_filters = apply_filters
         self.samples: list[tuple[str, int]] = []
+        self.preproc: bool = preproc
 
         with open(protocol_file, "r") as f:
             for line in f:
@@ -29,7 +31,22 @@ class FilteredDataset(Dataset):
                 prefix = label.split("_", 1)[0] + "_"
                 target = 0 if prefix == "0_" else 1
                 full_path = self.root_dir / Path(path).name
-                self.samples.append((str(full_path), target))                
+                self.samples.append((str(full_path), target))    
+
+                if preproc:
+                    original = Path(path).name  # e.g., "0000.png"
+                    stem = Path(original).stem  # "0000"
+                    suffix = Path(original).suffix  # ".png"
+
+                    for i in range(8):  # filtros f0 a f7
+                        img_fn = f"{stem}_f{i}{suffix}"  # e.g., "0000_f0.png"
+                        img_path = self.root_dir / img_fn
+
+                        if img_path.exists():
+                            self.samples.append((str(img_path), target))
+                        else:
+                            print(f"Imagen filtrada no encontrada: {img_path}")                   
+
 
     def __len__(self):
         return len(self.samples)
@@ -89,7 +106,7 @@ class FilteredDataset(Dataset):
 
         images = [img]  # original frame
 
-        if self.apply_filters:
+        if self.apply_filters and not self.preproc:
             images.extend(self._apply_filters(img))
 
         # aplicar transformaciones

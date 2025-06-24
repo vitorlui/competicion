@@ -32,12 +32,14 @@ def train_model(
     output_dir = f"outputs/{output_dir}_{experiment_time}"
 
     os.makedirs(output_dir, exist_ok=True)
-    criterion = nn.CrossEntropyLoss(
-        weight=torch.tensor(
-            get_class_weights(class_weights_path),
-            dtype=torch.float
-        ).to(device)
-    )
+    # criterion = nn.CrossEntropyLoss(
+    #     weight=torch.tensor(
+    #         get_class_weights(class_weights_path),
+    #         dtype=torch.float
+    #     ).to(device)
+    # )
+
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     metrics_log = []
 

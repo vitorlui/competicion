@@ -161,3 +161,56 @@ def generate_prediction_file(model, transform, model_name, transformer_name, epo
             f.write(f"{path} {score:.5f}\n")
 
     print(f"✅ Archivo generado: {output_file}")
+
+
+def generate_prediction_file2(model, transform, model_name, transformer_name, epoch, device="cuda", input_dir=".", output_dir="."):
+    model.eval()
+
+    print(f"ENTRAMOS generate_prediction_file {model_name}")
+
+    if(is_3d_model(model_name)):
+        print("\n\n ****** GENERATE SCORE: ENTRAMOS EN 3D ****** \n\n")
+         # Rutas a protocolos
+        val_ds = ValDataset3D("Protocol-val2.txt", transform=transform, input_dir=input_dir)
+        val_loader = DataLoader(val_ds, batch_size=96, shuffle=False)
+
+        test_ds = ValDataset3D("Protocol-test.txt", transform=transform,  input_dir=input_dir)
+        test_loader = DataLoader(test_ds, batch_size=96, shuffle=False)
+
+    else:
+        
+        # Rutas a protocolos
+        val_ds = ValDataset("Protocol-val2.txt", transform=transform,  input_dir=input_dir)
+        val_loader = DataLoader(val_ds, batch_size=96, shuffle=False)
+
+        test_ds = ValDataset("Protocol-test.txt", transform=transform,  input_dir=input_dir)
+        test_loader = DataLoader(test_ds, batch_size=96, shuffle=False)
+
+    results = []
+
+    with torch.no_grad():
+        for loader, split_name in [(val_loader, "val"), (test_loader, "test")]:
+            for imgs, paths in tqdm(loader, desc=f"Evaluando {split_name}"):
+                # Convertir de (B, F, C, H, W) → (B, C, T, H, W)
+                # if imgs.ndim == 5:
+                #     imgs = imgs.permute(0, 2, 1, 3, 4)
+
+                if imgs.ndim == 5:
+                    if imgs.shape[1] != 3:
+                        # print("PERMUTED")
+                        imgs = imgs.permute(0, 2, 1, 3, 4)
+
+                imgs = imgs.to(device)
+                outputs = model(imgs)
+                probs = torch.softmax(outputs, dim=1)
+                live_probs = probs[:, 1].cpu().numpy()
+                results.extend(zip(paths, live_probs))
+
+    experiment_name = f"{model_name}_epoch{epoch}_{transformer_name}"
+    output_file = f"{output_dir}/phase2_score_{experiment_name}.txt"
+
+    with open(output_file, 'w') as f:
+        for path, score in results:
+            f.write(f"{path} {score:.5f}\n")
+
+    print(f"✅ Archivo generado: {output_file}")

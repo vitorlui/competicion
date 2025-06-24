@@ -14,7 +14,7 @@ class TransformFactory:
 
     @staticmethod
     def get_all_transforms():
-        resize_sizes = [256]
+        resize_sizes = [256, 112]
         crop_options = [True]
         normalize_options = [True]
         interpolation_modes = {
