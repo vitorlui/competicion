@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from torch.utils.data import Dataset
 from ds.FilteredDataset import FilteredDataset
 from PIL import Image
+from typing import List
 
 # ========================
 #        DATASETS
@@ -40,7 +41,58 @@ class TwoClassDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, target
+    
+from typing import Callable, Optional, Union
+from pathlib import Path
+from PIL import Image
+from torch.utils.data import Dataset
 
+class TwoClassDatasetCustom(Dataset):
+    """
+    Binary classification:
+        0 -> bonafide (e.g., ["0_", "0_1", "0_2"])
+        1 -> fraud (e.g., ["1_", "2_", "3_1"])
+    """
+
+    def __init__(
+        self,
+        protocol_file: str,
+        root_dir: Union[str, Path],
+        bonafide_prefixes: List[str],
+        fraud_prefixes: List[str],
+        transform: Optional[Callable] = None
+    ) -> None:
+        self.root_dir = Path(root_dir)
+        self.transform = transform
+        self.samples: list[tuple[str, int]] = []
+
+        with open(protocol_file, "r") as f:
+            for line in f:
+                
+                path, label = line.strip().split()
+                prefix = label.split("_", 1)[0] + "_"  # keep the base prefix (e.g., "0_")
+
+                full_path = self.root_dir / Path(path).name
+
+                if prefix in bonafide_prefixes:
+                    target = 0
+                elif prefix in fraud_prefixes:
+                    # print(line)
+                    target = 1
+                else:
+                    continue  # ignore classes not listed
+
+                self.samples.append((str(full_path), target))
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int):
+        img_path, target = self.samples[idx]
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, target
 
 class ThreeClassDataset(Dataset):
     """
@@ -181,6 +233,8 @@ class DatasetFactory:
                , is3d: bool = False
                , apply_filters: bool = True
                , preproc: bool = False
+               , bonafide_prefixes: List[str] = None
+               , fraud_prefixes: List[str]= None
                 ) -> Dataset:
         if is3d:            
             return FilteredDataset(
@@ -191,6 +245,8 @@ class DatasetFactory:
             )
         elif num_classes == 2:
             return TwoClassDataset(protocol_file, root_dir, transform)
+        elif num_classes == 21:
+            return TwoClassDatasetCustom(protocol_file, root_dir, bonafide_prefixes, fraud_prefixes, transform=transform)
         elif num_classes == 3:
             return ThreeClassDataset(protocol_file, root_dir, transform)
         elif num_classes == 6:

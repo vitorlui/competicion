@@ -12,6 +12,35 @@ from copy import deepcopy
 from collections import Counter
 import torch
 
+from pathlib import Path
+
+def load_augmented_bonafides(dir_path, label=0, transform=None):
+    from torch.utils.data import Dataset
+    from PIL import Image
+
+    class AugmentedBonafideDataset(Dataset):
+        def __init__(self, root):
+            self.root = Path(root)
+            self.samples = [
+                (str(p), label)
+                for p in self.root.glob("*.png") if "_aug" in p.name
+            ]
+            self.transform = transform
+
+        def __len__(self):
+            return len(self.samples)
+
+        def __getitem__(self, idx):
+            path, label = self.samples[idx]
+            img = Image.open(path).convert("RGB")
+            if self.transform:
+                img = self.transform(img)
+            return img, label
+
+    return AugmentedBonafideDataset(dir_path)
+
+
+
 def print_class_distribution(dataset, name="Dataset"):
     """
     Imprime la distribución de clases de un Dataset o ConcatDataset.
@@ -104,20 +133,15 @@ def main():
         )
 
         print_class_distribution(train_ds, name="Antes del balanceo")
-      
 
-        bonafide_samples = [s for s in train_ds.samples if s[1] == 0]
-        fraud_samples = [s for s in train_ds.samples if s[1] >= 1]
+        # Crear dataset de bonafides augmentados
+        aug_bonafide_ds = load_augmented_bonafides(
+            dir_path="/mnt/d2/competicion/Data-train-augmented",
+            label=0,
+            transform=tfms
+        )
 
-        bonafide_ds = deepcopy(train_ds)
-        bonafide_ds.samples = bonafide_samples
-
-        fraud_ds = deepcopy(train_ds)
-        fraud_ds.samples = fraud_samples
-
-        balanced_bonafide_ds = balance_bonafide(bonafide_ds, len(fraud_ds))
-
-        train_ds = ConcatDataset([balanced_bonafide_ds, fraud_ds])
+        train_ds = ConcatDataset([train_ds, aug_bonafide_ds])
         
         print_class_distribution(train_ds, name="Después del balanceo")
 
@@ -198,7 +222,7 @@ def main():
         tfms=tfms,
         model_name=f"{args.model}_{num_classes_iter}c",
         num_classes=num_classes_iter,
-        class_weights_path=f"class_weights_{num_classes_iter}clases.npy",
+        class_weights_path=f"class_weights_{num_classes_iter}clases_aug.npy",
         checkpoint_every=args.every_epoch,
         epochs=args.epochs,
         device=args.device,

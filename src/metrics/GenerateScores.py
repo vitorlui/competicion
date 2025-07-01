@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader, Dataset
 from PIL import Image, ImageEnhance, ImageFilter
 from tqdm import tqdm
 from models.ModelFactory import is_3d_model
-from ds.DatasetFactory import DatasetFactory
 import cv2
 import numpy as np
 import torch

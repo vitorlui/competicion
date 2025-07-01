@@ -10,15 +10,16 @@ from tqdm import tqdm
 
 
 def get_transform():
-    resize = 256
+    resize = 512
+    crop_size = 224
     interpolation = InterpolationMode.BICUBIC
     tfms = [
         transforms.Resize(resize, interpolation=interpolation),
-        transforms.CenterCrop(224),
+        # transforms.CenterCrop(crop_size),
         transforms.ToTensor()
     ]
     composed = transforms.Compose(tfms)
-    name = f"Resize{resize}bicubic_crop224"
+    name = f"Resize{resize}bicubic_crop{crop_size}"
     return name, composed
 
 
@@ -70,10 +71,10 @@ def apply_all_filters(img_pil: Image.Image):
 
 
 def main():
-    input = "Data-test"
+    input = "/mnt/d2/competicion/Data-val"
     input_dir = Path(input)  # carpeta con imágenes originales
     output_name, tfms = get_transform()
-    output_dir = Path(f"{input}3D")
+    output_dir = Path(f"{input}3D_512")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for image_path in tqdm(sorted(input_dir.glob("*.png")), desc="Generando filtros"):

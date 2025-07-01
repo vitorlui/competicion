@@ -14,8 +14,8 @@ class TransformFactory:
 
     @staticmethod
     def get_all_transforms():
-        resize_sizes = [256, 112]
-        crop_options = [True]
+        resize_sizes = [256]
+        crop_options = [True, False]
         normalize_options = [True]
         interpolation_modes = {
             "bilinear": InterpolationMode.BILINEAR,
