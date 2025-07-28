@@ -26,7 +26,8 @@ def train_model(
     epochs=15,
     device="cuda",
     input_dir=".",
-    output_dir="checkpoints"    
+    output_dir="checkpoints",
+    hyperparams = {"lr": 1e-4, "weight_decay": 1e-4}   
 ):
 
     experiment_time = datetime.now().strftime("%d%m_%H%M")
@@ -41,9 +42,16 @@ def train_model(
         ).to(device)
     )
 
+    optimizer = torch.optim.Adam(
+        model.parameters(), 
+        lr=hyperparams.get("lr", 1e-4), 
+        weight_decay=hyperparams.get("weight_decay", 1e-4)
+    )
+    
     # criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    # optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
+    optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
+    
     metrics_log = []
 
     for epoch in range(1, epochs + 1):
