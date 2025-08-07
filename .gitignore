@@ -17,3 +17,5 @@
 *.sh
 phase*.txt
 src/SUBMISSION/dataset/
+src/*.png
+src/*.db

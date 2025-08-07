@@ -1,0 +1,3 @@
+
+
+Log de métricas guardado: outputs/ck_vit_b_16_2_pt0_trans_res256bilinear_crop224_0408_1218/vit_b_16_2c_training_log.csv

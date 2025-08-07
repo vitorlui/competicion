@@ -53,7 +53,16 @@ def balance_bonafide(bonafide_ds, target_size):
         datasets.append(Subset(bonafide_ds, list(range(remainder))))
     return ConcatDataset(datasets)
 
-
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+    
 def main():
     parser = argparse.ArgumentParser(description="Train a model for FAS classification")
     parser.add_argument('--model', type=str, required=True, help='Model name (e.g. vit_b_32, resnet50)')
@@ -63,10 +72,10 @@ def main():
     parser.add_argument('--every_epoch', type=int, default=5, help='Checkpoint frequency (default: 5)')
     parser.add_argument('--classes', type=int, default=2, help='Number of output classes (2 or 3)')
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--pretrained', type=bool, default=True)
-    parser.add_argument('--preproc', type=bool, default=False)
-    parser.add_argument('--multiGPU', type=bool, default=False)
-    parser.add_argument('--test_mode', type=bool, default=False)
+    parser.add_argument('--pretrained', type=str2bool, default=True)
+    parser.add_argument('--preproc', type=str2bool, default=False)
+    parser.add_argument('--multiGPU', type=str2bool, default=False)
+    parser.add_argument('--test_mode', type=str2bool, default=False)
     parser.add_argument('--input_dir', type=str, default="/mnt/d2/competicion")
     parser.add_argument('--label', type=str, default=None)
     
@@ -106,20 +115,20 @@ def main():
         print_class_distribution(train_ds, name="Antes del balanceo")
       
 
-        bonafide_samples = [s for s in train_ds.samples if s[1] == 0]
-        fraud_samples = [s for s in train_ds.samples if s[1] >= 1]
+        # bonafide_samples = [s for s in train_ds.samples if s[1] == 0]
+        # fraud_samples = [s for s in train_ds.samples if s[1] >= 1]
 
-        bonafide_ds = deepcopy(train_ds)
-        bonafide_ds.samples = bonafide_samples
+        # bonafide_ds = deepcopy(train_ds)
+        # bonafide_ds.samples = bonafide_samples
 
-        fraud_ds = deepcopy(train_ds)
-        fraud_ds.samples = fraud_samples
+        # fraud_ds = deepcopy(train_ds)
+        # fraud_ds.samples = fraud_samples
 
-        balanced_bonafide_ds = balance_bonafide(bonafide_ds, len(fraud_ds))
+        # balanced_bonafide_ds = balance_bonafide(bonafide_ds, len(fraud_ds))
 
-        train_ds = ConcatDataset([balanced_bonafide_ds, fraud_ds])
+        # train_ds = ConcatDataset([balanced_bonafide_ds, fraud_ds])
         
-        print_class_distribution(train_ds, name="Después del balanceo")
+        # print_class_distribution(train_ds, name="Después del balanceo")
 
         if args.test_mode:
             print("Test mode ON")

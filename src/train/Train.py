@@ -138,7 +138,7 @@ def train_model(
         df.to_csv(csv_path, index=False)
         print(f"Log de métricas guardado: {csv_path}")
 
-    return model
+    return model, metrics_log
 
 
 def train_iteractive(
